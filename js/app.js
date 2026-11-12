@@ -61,11 +61,11 @@ function askPass(title, { confirm = false, validate = null, placeholder = 'Passp
   in1.value = ''; in2.value = ''; err.textContent = '';
   in1.placeholder = placeholder; in2.placeholder = 'Type it again'; in2.hidden = !confirm;
   return new Promise((resolve) => {
-    const done = (v) => { form.removeEventListener('submit', onSubmit); dlg.removeEventListener('cancel', onCancel); in1.value = in2.value = ''; if (dlg.open) dlg.close(); resolve(v); };
+    const done = (v) => { form.removeEventListener('submit', onSubmit); dlg.removeEventListener('cancel', onCancel); $('#pass-cancel').removeEventListener('click', onCancelBtn); in1.value = in2.value = ''; if (dlg.open) dlg.close(); resolve(v); };
     const onCancel = (e) => { e.preventDefault(); done(null); };
+    const onCancelBtn = () => done(null);
     const onSubmit = async (e) => {
       e.preventDefault();
-      if (e.submitter && e.submitter.value === 'cancel') { done(null); return; }
       const v = in1.value;
       if (!v) { err.textContent = 'Please type a passphrase.'; return; }
       if (confirm && v !== in2.value) { err.textContent = 'The two entries don’t match.'; return; }
@@ -78,7 +78,7 @@ function askPass(title, { confirm = false, validate = null, placeholder = 'Passp
       }
       done(v);
     };
-    form.addEventListener('submit', onSubmit); dlg.addEventListener('cancel', onCancel);
+    form.addEventListener('submit', onSubmit); dlg.addEventListener('cancel', onCancel); $('#pass-cancel').addEventListener('click', onCancelBtn);
     dlg.showModal(); in1.focus();
   });
 }

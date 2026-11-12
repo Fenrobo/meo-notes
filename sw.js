@@ -1,6 +1,6 @@
 // MEO Notes service worker: lets the app open offline.
 // Only the app's own files are cached here. Notes are never sent anywhere.
-const VERSION = 'meo-app-v2';
+const VERSION = 'meo-app-v3';
 const CORE = ['./', 'index.html', 'app.css', 'js/app.js', 'js/crypto.js', 'js/db.js', 'js/text.js', 'js/tts.js', 'js/sync.js', 'voices.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
   'fonts/jetbrains-mono-latin-400-normal.woff2', 'fonts/jetbrains-mono-latin-ext-400-normal.woff2',
