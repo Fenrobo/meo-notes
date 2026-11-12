@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' https://api.github.com https://huggingface.co https://*.huggingface.co https://*.hf.co blob: data:; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#14211f">
+<title>MEO Notes</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+<!-- ============ First-time setup ============ -->
+<main id="screen-setup" class="screen center" hidden>
+  <div class="card">
+    <h1>MEO Notes</h1>
+    <p class="muted">Set up your two passphrases. There is no way to recover them, so pick ones you will remember.</p>
+    <form id="setup-form" autocomplete="off">
+      <fieldset>
+        <legend>Login passphrase</legend>
+        <p class="hint">Asked every time you open the app.</p>
+        <input type="password" id="setup-login" placeholder="Login passphrase" required minlength="6" autocomplete="new-password">
+        <input type="password" id="setup-login2" placeholder="Type it again" required autocomplete="new-password">
+      </fieldset>
+      <fieldset>
+        <legend>Reveal passphrase</legend>
+        <p class="hint">A different passphrase, asked before showing text unobfuscated.</p>
+        <input type="password" id="setup-reveal" placeholder="Reveal passphrase" required minlength="4" autocomplete="new-password">
+        <input type="password" id="setup-reveal2" placeholder="Type it again" required autocomplete="new-password">
+      </fieldset>
+      <p id="setup-error" class="error" role="alert"></p>
+      <button type="submit" class="primary wide">Create my notebook</button>
+    </form>
+    <hr>
+    <p class="muted small">Already have a MEO Notes backup (for example from your other device)?</p>
+    <label class="button wide">Restore from a backup file<input type="file" id="setup-restore-file" accept=".meobak,application/json" hidden></label>
+    <button type="button" id="setup-sync-toggle" class="wide">Set up from sync (GitHub)</button>
+    <form id="setup-sync-form" autocomplete="off" hidden>
+      <p class="hint">Use the same GitHub details as your other device.</p>
+      <input type="text" id="setup-sync-owner" placeholder="GitHub username" required autocapitalize="off" spellcheck="false">
+      <input type="text" id="setup-sync-repo" placeholder="Repository name" required autocapitalize="off" spellcheck="false">
+      <input type="password" id="setup-sync-token" placeholder="Access token" required autocomplete="off">
+      <button type="submit" class="primary wide">Download my notebook</button>
+    </form>
+  </div>
+</main>
+
+<!-- ============ Login ============ -->
+<main id="screen-login" class="screen center" hidden>
+  <div class="card">
+    <h1>MEO Notes</h1>
+    <form id="login-form" autocomplete="off">
+      <input type="password" id="login-pass" placeholder="Login passphrase" required autocomplete="current-password" autofocus>
+      <p id="login-error" class="error" role="alert"></p>
+      <button type="submit" class="primary wide" id="login-btn">Unlock</button>
+    </form>
+  </div>
+</main>
+
+<!-- ============ App ============ -->
+<div id="screen-app" class="screen" hidden>
+  <header class="topbar">
+    <button id="back-btn" class="ghost only-narrow" aria-label="Close note">‹ Notes</button>
+    <span class="brand">MEO Notes</span>
+    <span class="spacer"></span>
+    <span id="sync-badge" class="sync-badge" role="status"></span>
+    <button id="lock-btn" class="ghost" title="Lock (or double-tap this bar, or press Esc twice)">Lock</button>
+  </header>
+
+  <div class="layout">
+    <!-- Notes list -->
+    <aside id="list-pane" class="pane">
+      <button id="new-note-btn" class="primary wide">+ New note</button>
+      <ul id="note-list" class="note-list" aria-label="Notes"></ul>
+      <p id="empty-list" class="muted small" hidden>No notes yet.</p>
+
+      <details class="menu" id="note-settings">
+        <summary>Note Settings</summary>
+        <div class="menu-body">
+          <h3>Name Display</h3>
+          <label><input type="checkbox" data-name-opt="spaces"> Show Spaces</label>
+          <label><input type="checkbox" data-name-opt="endPunct"> Show End Punctuation</label>
+          <label><input type="checkbox" data-name-opt="firstLetters"> Show First Letters</label>
+          <label><input type="checkbox" id="name-show-all"> Show All Names <span class="tag">needs reveal passphrase</span></label>
+          <h3>Metadata saved in new notes</h3>
+          <label><input type="checkbox" data-meta-opt="created"> Date created</label>
+          <label><input type="checkbox" data-meta-opt="modified"> Date modified</label>
+          <label><input type="checkbox" data-meta-opt="size"> Size</label>
+          <h3>Sort notes</h3>
+          <select id="sort-select">
+            <option value="num-desc">Newest note first</option>
+            <option value="num-asc">Oldest note first</option>
+            <option value="modified">Recently modified first</option>
+          </select>
+        </div>
+      </details>
+
+      <details class="menu" id="sync-menu">
+        <summary>Sync</summary>
+        <div class="menu-body">
+          <p class="hint">Keeps your PC and phone in step through a private GitHub repository. Notes are encrypted before they leave this device, so GitHub only stores scrambled data.</p>
+          <div id="sync-setup">
+            <input type="text" id="sync-owner" placeholder="GitHub username" autocapitalize="off" spellcheck="false">
+            <input type="text" id="sync-repo" placeholder="Repository name (e.g. meo-notes-data)" autocapitalize="off" spellcheck="false">
+            <input type="password" id="sync-token" placeholder="Access token" autocomplete="off">
+            <button id="sync-connect-btn" class="primary wide">Turn on sync</button>
+          </div>
+          <div id="sync-on" hidden>
+            <p class="small">Syncing with <b id="sync-where"></b></p>
+            <button id="sync-now-btn" class="wide">Sync now</button>
+            <button id="sync-token-btn" class="wide">Replace access token</button>
+            <button id="sync-off-btn" class="wide ghost">Turn off sync on this device</button>
+          </div>
+          <p id="sync-status" class="hint" role="status"></p>
+        </div>
+      </details>
+
+      <details class="menu">
+        <summary>Backup &amp; Restore</summary>
+        <div class="menu-body">
+          <p class="hint">Backups stay encrypted with your login passphrase. Use them to move notes between your PC and phone.</p>
+          <button id="backup-btn" class="wide">Download backup</button>
+          <label class="button wide">Restore from backup…<input type="file" id="restore-file" accept=".meobak,application/json" hidden></label>
+          <p id="backup-status" class="hint" role="status"></p>
+        </div>
+      </details>
+
+      <details class="menu">
+        <summary>Security</summary>
+        <div class="menu-body">
+          <button id="change-login-btn" class="wide">Change login passphrase</button>
+          <button id="change-reveal-btn" class="wide">Change reveal passphrase</button>
+          <button id="erase-btn" class="wide danger">Erase everything on this device</button>
+          <label class="row">Lock after no activity for
+            <select id="timeout-select">
+              <option value="1">1 minute</option>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="lock-on-hide"> Lock as soon as I switch away from the app</label>
+          <p class="hint">Quick lock: double-tap the top bar, or press Esc twice. The screen is always covered while you're switched away, and Show All Text / Show All Names turn off.</p>
+        </div>
+      </details>
+    </aside>
+
+    <!-- Editor -->
+    <section id="note-pane" class="pane">
+      <div id="no-note" class="muted center-text">Pick a note or create a new one.</div>
+      <div id="editor" hidden>
+        <div class="name-row">
+          <div class="masked single" id="name-wrap">
+            <div class="mask-layer" aria-hidden="true"></div>
+            <textarea id="name-input" rows="1" wrap="off" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="Note name"></textarea>
+          </div>
+          <button id="close-note-btn" class="ghost only-wide">Close</button>
+        </div>
+
+        <div class="masked multi" id="text-wrap">
+          <div class="mask-layer" aria-hidden="true"></div>
+          <textarea id="note-text" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="Note text" placeholder="Start typing…"></textarea>
+        </div>
+
+        <div class="read-row">
+          <button data-read="sentence">Read Last Sentence</button>
+          <button data-read="newline">Read from Newline</button>
+          <button data-read="all">Read All</button>
+          <button data-read="cursor">Read from Cursor</button>
+          <button data-read="word">Read Last Word</button>
+          <button data-read="selection">Read Selection</button>
+          <button id="stop-btn" class="danger" disabled>Stop</button>
+        </div>
+        <p id="voice-status" class="hint" role="status"></p>
+        <p class="hint only-wide">Shortcuts: Alt+1 Last Sentence · Alt+2 Newline · Alt+3 All · Alt+4 Cursor · Alt+5 Last Word · Alt+6 Selection · Esc Stop · Esc Esc Lock</p>
+
+        <details class="menu">
+          <summary>Text Settings</summary>
+          <div class="menu-body">
+            <h3>Text Display</h3>
+            <label><input type="checkbox" data-text-opt="spaces"> Show Spaces</label>
+            <label><input type="checkbox" data-text-opt="endPunct"> Show End Punctuation</label>
+            <label><input type="checkbox" data-text-opt="firstLetters"> Show First Letters</label>
+            <label><input type="checkbox" id="text-show-all"> Show All Text <span class="tag">needs reveal passphrase</span></label>
+            <p class="hint">Show All Text turns itself off when you close the note, lock, or time out.</p>
+          </div>
+        </details>
+
+        <details class="menu">
+          <summary>Voice Settings</summary>
+          <div class="menu-body">
+            <label class="row">Auto Read
+              <select id="auto-read">
+                <option value="off">Off</option>
+                <option value="word">Every Word</option>
+                <option value="sentence">Every Sentence</option>
+                <option value="newline">Every Newline</option>
+              </select>
+            </label>
+            <label class="row">Speed <span id="speed-val">1.0×</span>
+              <input type="range" id="speed" min="0.5" max="2" step="0.05">
+            </label>
+            <label class="row">Voice engine
+              <select id="engine">
+                <option value="piper">Piper – fast, private (recommended)</option>
+                <option value="kokoro">Kokoro – most natural, private, slower on phones</option>
+                <option value="system">Device voices – instant (some send text online)</option>
+              </select>
+            </label>
+            <label class="row">Voice <select id="voice-select"></select></label>
+            <label class="row" id="speaker-row" hidden>Speaker <select id="speaker-select"></select></label>
+            <div class="btn-row">
+              <button id="test-voice-btn">Test voice</button>
+            </div>
+            <p class="hint" id="engine-hint"></p>
+            <h3>Custom voices</h3>
+            <p class="hint">Add any Piper voice: choose its <b>.onnx</b> and <b>.onnx.json</b> files together.</p>
+            <label class="button">Add custom voice…<input type="file" id="custom-voice-file" accept=".onnx,.json" multiple hidden></label>
+            <ul id="custom-voice-list" class="plain-list"></ul>
+            <button id="clear-voices-btn" class="ghost small">Delete downloaded voice files</button>
+          </div>
+        </details>
+
+        <details class="menu" id="meta-menu">
+          <summary>Note Info</summary>
+          <div class="menu-body" id="meta-body"></div>
+        </details>
+
+        <button id="delete-note-btn" class="ghost danger small">Delete this note</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="privacy-cover" hidden><div class="cover-mark">MEO Notes</div></div>
+
+<!-- Passphrase prompt -->
+<dialog id="pass-dialog">
+  <form method="dialog" id="pass-form" autocomplete="off">
+    <p id="pass-title"></p>
+    <input type="password" id="pass-input" autocomplete="off">
+    <input type="password" id="pass-input2" autocomplete="off" hidden>
+    <p id="pass-error" class="error" role="alert"></p>
+    <div class="btn-row end">
+      <button value="cancel" formnovalidate class="ghost">Cancel</button>
+      <button value="ok" class="primary" id="pass-ok">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Choice / confirm prompt -->
+<dialog id="choice-dialog">
+  <form method="dialog">
+    <p id="choice-text"></p>
+    <div class="btn-row end" id="choice-buttons"></div>
+  </form>
+</dialog>
+</body>
+</html>
