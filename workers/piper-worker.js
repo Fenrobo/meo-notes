@@ -10,7 +10,7 @@ importScripts(BASE + 'vendor/ort/ort.wasm.min.js');
 importScripts(BASE + 'vendor/piper/piper_phonemize.js');
 
 ort.env.wasm.wasmPaths = BASE + 'vendor/ort/';
-ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 1) : 1;
+ort.env.wasm.numThreads = 1;
 
 const MODEL_CACHE = 'meo-voices-v1';
 

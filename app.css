@@ -130,3 +130,5 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
 .sync-badge { font-size: .8rem; color: var(--muted); }
 .sync-badge.bad { color: var(--danger); cursor: pointer; }
 input[type=text] { font: inherit; }
+#fmt-notes { height: 6rem !important; min-height: 6rem !important; }
+#format-row button { flex: 1 1 auto; }

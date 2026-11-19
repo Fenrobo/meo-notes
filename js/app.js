@@ -4,6 +4,7 @@ import * as C from './crypto.js';
 import * as T from './text.js';
 import { Speaker, PIPER_VOICES, KOKORO_VOICES } from './tts.js';
 import { GitHubStore, SyncConflict, mergeNotebooks } from './sync.js';
+import { initFormat } from './format.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -164,8 +165,23 @@ async function lock() {
   if (dirty && state.settings && state.settings.sync) { try { await Promise.race([syncNow(), sleep(5000)]); } catch (e) { /* ignore */ } }
   state.key = null; state.unlocked = false;
   $('#note-text').value = ''; $('#name-input').value = '';
+  if (format.busy()) { softLock(); return; }
   location.reload();
 }
+/* Locks the notebook without restarting the app, so a format already running can finish.
+   The app restarts as soon as that work is done. */
+function softLock() {
+  clearTimeout(listTimer); clearTimeout(syncTimer); clearTimeout(pendingSentence);
+  state.notes = new Map(); state.openId = null; state.settings = null;
+  state.revealText = false; state.revealNames = false; state.sync = { base: {}, tomb: {}, lastSync: 0 }; dirty = false;
+  textField.layer.textContent = ''; nameField.layer.textContent = '';
+  $('#note-list').innerHTML = ''; $('#meta-body').innerHTML = ''; setVoiceStatus('');
+  format.locked();
+  $('#editor').hidden = true; $('#no-note').hidden = false; document.body.classList.remove('note-open');
+  setCover(false); show('login'); $('#login-pass').value = ''; $('#login-pass').focus();
+  locking = false;
+}
+function afterBackgroundWork() { if (!state.unlocked && !$('#login-pass').value) location.reload(); }
 
 /* ---------------- masked fields ---------------- */
 class MaskedField {
@@ -304,6 +320,7 @@ function enterApp() {
   applySettingsToUI();
   renderList();
   closeNote();
+  format.unlocked();
   if (state.settings.sync) syncSoon(300);
 }
 
@@ -395,6 +412,7 @@ function openNote(id) {
   $('#note-text').scrollTop = 0; $('#note-text').setSelectionRange(n.text.length, n.text.length);
   document.body.classList.add('note-open');
   textField.render(); nameField.render();
+  format.opened(n);
   renderMeta(); renderList();
 }
 
@@ -942,13 +960,24 @@ $('#erase-btn').addEventListener('click', async () => {
   if (!(await confirmDanger('Erase ALL notes, settings and passphrases on this device? Make a backup first if you want to keep anything.', 'Continue'))) return;
   if (!(await confirmDanger('Are you completely sure? This cannot be undone.', 'Erase everything'))) return;
   speaker.stop(); state.unlocked = false; state.saveTimers.forEach(clearTimeout); state.saveTimers.clear();
+  await format.erase();
   await db.wipe();
   location.reload();
 });
 
 /* ---------------- boot ---------------- */
+const format = initFormat({ state, db, C, bump, touch, saveNote, markDirty, MaskedField, textField, confirmDanger, afterBackgroundWork });
+
 async function boot() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // The first time an updated app takes over, restart once so its page settings apply.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (/Android/i.test(navigator.userAgent) || self.crossOriginIsolated || state.unlocked || sessionStorage.getItem('meo-restarted')) return;
+      if ($('#login-pass').value || $('#setup-login').value) return; // don't interrupt typing
+      sessionStorage.setItem('meo-restarted', '1'); location.reload();
+    });
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
   state.vault = await db.get('kv', 'vault');
   if (state.vault) { show('login'); $('#login-pass').focus(); } else show('setup');
 }

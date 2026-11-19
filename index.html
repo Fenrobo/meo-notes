@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' https://api.github.com https://huggingface.co https://*.huggingface.co https://*.hf.co blob: data:; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' https://api.github.com https://huggingface.co https://*.huggingface.co https://*.hf.co blob: data:; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#14211f">
 <title>MEO Notes</title>
@@ -181,7 +181,12 @@
           <button id="stop-btn" class="danger" disabled>Stop</button>
         </div>
         <p id="voice-status" class="hint" role="status"></p>
-        <p class="hint only-wide">Shortcuts: Alt+1 Last Sentence · Alt+2 Newline · Alt+3 All · Alt+4 Cursor · Alt+5 Last Word · Alt+6 Selection · Esc Stop · Esc Esc Lock</p>
+        <div class="btn-row" id="format-row" hidden>
+          <button id="fmt-apply" title="Apply Format (Alt+7)">Apply Format</button>
+          <button id="fmt-revert" class="ghost" disabled>Revert Format</button>
+        </div>
+        <p id="fmt-status" class="hint" role="status" hidden></p>
+        <p class="hint only-wide">Shortcuts: Alt+1 Last Sentence · Alt+2 Newline · Alt+3 All · Alt+4 Cursor · Alt+5 Last Word · Alt+6 Selection<span id="fmt-hint" hidden> · Alt+7 Apply Format</span> · Esc Stop · Esc Esc Lock</p>
 
         <details class="menu">
           <summary>Text Settings</summary>
@@ -192,6 +197,51 @@
             <label><input type="checkbox" data-text-opt="firstLetters"> Show First Letters</label>
             <label><input type="checkbox" id="text-show-all"> Show All Text <span class="tag">needs reveal passphrase</span></label>
             <p class="hint">Show All Text turns itself off when you close the note, lock, or time out.</p>
+          </div>
+        </details>
+
+        <details class="menu" id="fmt-menu" hidden>
+          <summary>Formatting</summary>
+          <div class="menu-body">
+            <h3>Format Notes</h3>
+            <div class="masked multi" id="fmt-notes-wrap">
+              <div class="mask-layer" aria-hidden="true"></div>
+              <textarea id="fmt-notes" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="Format Notes" placeholder="Optional"></textarea>
+            </div>
+            <label><input type="checkbox" id="fmt-keep"> Keep for this note</label>
+            <label class="row">Block Size
+              <select id="fmt-size">
+                <option value="short">Short</option>
+                <option value="medium">Medium</option>
+                <option value="long">Long</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <label class="row" id="fmt-words-row" hidden>Words
+              <input type="number" id="fmt-words" min="10" max="800" step="10">
+            </label>
+            <h3>Format Pack</h3>
+            <p id="fmt-pack-status" class="hint" role="status"></p>
+            <div class="btn-row">
+              <button id="fmt-pack-btn">Download format pack</button>
+              <button id="fmt-pack-del" class="ghost danger small" hidden>Delete format pack</button>
+            </div>
+            <label class="row">Format speed
+              <select id="fmt-mode">
+                <option value="auto">Automatic</option>
+                <option value="cpu">CPU only</option>
+              </select>
+            </label>
+            <label class="row">CPU cores
+              <select id="fmt-cores">
+                <option value="0">Automatic</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="6">6</option>
+                <option value="8">8</option>
+                <option value="12">12</option>
+              </select>
+            </label>
           </div>
         </details>
 
