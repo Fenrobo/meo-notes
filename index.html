@@ -181,12 +181,14 @@
           <button id="stop-btn" class="danger" disabled>Stop</button>
         </div>
         <p id="voice-status" class="hint" role="status"></p>
-        <div class="btn-row" id="format-row" hidden>
-          <button id="fmt-apply" title="Apply Format (Alt+7)">Apply Format</button>
-          <button id="fmt-revert" class="ghost" disabled>Revert Format</button>
+        <div class="snip-bar">
+          <p id="snip-status" class="hint" role="status" hidden></p>
+          <span id="snip-row" hidden>
+            <button id="snip-apply" class="tiny" title="Insert snippet (Alt+7)">Insert snippet</button>
+            <button id="snip-revert" class="tiny" title="Undo snippet" disabled>Undo</button>
+          </span>
         </div>
-        <p id="fmt-status" class="hint" role="status" hidden></p>
-        <p class="hint only-wide">Shortcuts: Alt+1 Last Sentence · Alt+2 Newline · Alt+3 All · Alt+4 Cursor · Alt+5 Last Word · Alt+6 Selection<span id="fmt-hint" hidden> · Alt+7 Apply Format</span> · Esc Stop · Esc Esc Lock</p>
+        <p class="hint only-wide">Shortcuts: Alt+1 Last Sentence · Alt+2 Newline · Alt+3 All · Alt+4 Cursor · Alt+5 Last Word · Alt+6 Selection<span id="snip-hint" hidden> · Alt+7 Snippet</span> · Esc Stop · Esc Esc Lock</p>
 
         <details class="menu">
           <summary>Text Settings</summary>
@@ -200,40 +202,40 @@
           </div>
         </details>
 
-        <details class="menu" id="fmt-menu" hidden>
-          <summary>Formatting</summary>
+        <details class="menu" id="snip-menu" hidden>
+          <summary>Snippets</summary>
           <div class="menu-body">
-            <h3>Format Notes</h3>
-            <div class="masked multi" id="fmt-notes-wrap">
+            <h3>Keywords</h3>
+            <div class="masked multi" id="snip-notes-wrap">
               <div class="mask-layer" aria-hidden="true"></div>
-              <textarea id="fmt-notes" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="Format Notes" placeholder="Optional"></textarea>
+              <textarea id="snip-notes" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="Keywords" placeholder="Optional"></textarea>
             </div>
-            <label><input type="checkbox" id="fmt-keep"> Keep for this note</label>
-            <label class="row">Block Size
-              <select id="fmt-size">
+            <label><input type="checkbox" id="snip-keep"> Keep for this note</label>
+            <label class="row">Snippet length
+              <select id="snip-size">
                 <option value="short">Short</option>
                 <option value="medium">Medium</option>
                 <option value="long">Long</option>
                 <option value="custom">Custom</option>
               </select>
             </label>
-            <label class="row" id="fmt-words-row" hidden>Words
-              <input type="number" id="fmt-words" min="10" max="800" step="10">
+            <label class="row" id="snip-words-row" hidden>Words
+              <input type="number" id="snip-words" min="10" max="800" step="10">
             </label>
-            <h3>Format Pack</h3>
-            <p id="fmt-pack-status" class="hint" role="status"></p>
+            <h3>Snippet Library</h3>
+            <p id="snip-pack-status" class="hint" role="status"></p>
             <div class="btn-row">
-              <button id="fmt-pack-btn">Download format pack</button>
-              <button id="fmt-pack-del" class="ghost danger small" hidden>Delete format pack</button>
+              <button id="snip-pack-btn">Download snippet library</button>
+              <button id="snip-pack-del" class="ghost danger small" hidden>Delete snippet library</button>
             </div>
-            <label class="row">Format speed
-              <select id="fmt-mode">
+            <label class="row">Library speed
+              <select id="snip-mode">
                 <option value="auto">Automatic</option>
                 <option value="cpu">CPU only</option>
               </select>
             </label>
             <label class="row">CPU cores
-              <select id="fmt-cores">
+              <select id="snip-cores">
                 <option value="0">Automatic</option>
                 <option value="2">2</option>
                 <option value="4">4</option>

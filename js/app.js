@@ -4,7 +4,7 @@ import * as C from './crypto.js';
 import * as T from './text.js';
 import { Speaker, PIPER_VOICES, KOKORO_VOICES } from './tts.js';
 import { GitHubStore, SyncConflict, mergeNotebooks } from './sync.js';
-import { initFormat } from './format.js';
+import { initSnippets } from './snippets.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -165,10 +165,10 @@ async function lock() {
   if (dirty && state.settings && state.settings.sync) { try { await Promise.race([syncNow(), sleep(5000)]); } catch (e) { /* ignore */ } }
   state.key = null; state.unlocked = false;
   $('#note-text').value = ''; $('#name-input').value = '';
-  if (format.busy()) { softLock(); return; }
+  if (snippets.busy()) { softLock(); return; }
   location.reload();
 }
-/* Locks the notebook without restarting the app, so a format already running can finish.
+/* Locks the notebook without restarting the app, so a snippet already loading can finish.
    The app restarts as soon as that work is done. */
 function softLock() {
   clearTimeout(listTimer); clearTimeout(syncTimer); clearTimeout(pendingSentence);
@@ -176,7 +176,7 @@ function softLock() {
   state.revealText = false; state.revealNames = false; state.sync = { base: {}, tomb: {}, lastSync: 0 }; dirty = false;
   textField.layer.textContent = ''; nameField.layer.textContent = '';
   $('#note-list').innerHTML = ''; $('#meta-body').innerHTML = ''; setVoiceStatus('');
-  format.locked();
+  snippets.locked();
   $('#editor').hidden = true; $('#no-note').hidden = false; document.body.classList.remove('note-open');
   setCover(false); show('login'); $('#login-pass').value = ''; $('#login-pass').focus();
   locking = false;
@@ -320,7 +320,7 @@ function enterApp() {
   applySettingsToUI();
   renderList();
   closeNote();
-  format.unlocked();
+  snippets.unlocked();
   if (state.settings.sync) syncSoon(300);
 }
 
@@ -412,7 +412,7 @@ function openNote(id) {
   $('#note-text').scrollTop = 0; $('#note-text').setSelectionRange(n.text.length, n.text.length);
   document.body.classList.add('note-open');
   textField.render(); nameField.render();
-  format.opened(n);
+  snippets.opened(n);
   renderMeta(); renderList();
 }
 
@@ -960,13 +960,13 @@ $('#erase-btn').addEventListener('click', async () => {
   if (!(await confirmDanger('Erase ALL notes, settings and passphrases on this device? Make a backup first if you want to keep anything.', 'Continue'))) return;
   if (!(await confirmDanger('Are you completely sure? This cannot be undone.', 'Erase everything'))) return;
   speaker.stop(); state.unlocked = false; state.saveTimers.forEach(clearTimeout); state.saveTimers.clear();
-  await format.erase();
+  await snippets.erase();
   await db.wipe();
   location.reload();
 });
 
 /* ---------------- boot ---------------- */
-const format = initFormat({ state, db, C, bump, touch, saveNote, markDirty, MaskedField, textField, confirmDanger, afterBackgroundWork });
+const snippets = initSnippets({ state, db, C, bump, touch, saveNote, markDirty, MaskedField, textField, confirmDanger, afterBackgroundWork });
 
 async function boot() {
   if ('serviceWorker' in navigator) {
