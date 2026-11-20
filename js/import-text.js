@@ -7,15 +7,20 @@
 
 const newBtn = document.querySelector('#new-note-btn');
 const label = document.createElement('label');
-label.className = 'button wide';
-label.textContent = 'Import text file(s)…';
+label.className = 'button icon-btn';
+label.title = 'Import text files';
+label.setAttribute('aria-label', 'Import text files');
+label.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>';
 const input = document.createElement('input');
 input.type = 'file';
 input.accept = '.txt,text/plain';
 input.multiple = true;
 input.hidden = true;
 label.appendChild(input);
-newBtn.after(label);
+const row = document.createElement('div');
+row.className = 'btn-row';
+row.appendChild(label);
+document.querySelector('#note-settings .menu-body').prepend(row);
 
 function decode(buf) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } // UTF-8 (BOM is dropped)

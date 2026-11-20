@@ -58,14 +58,15 @@ How sync behaves:
 ## Using it
 
 - **Read buttons**
-  - **Read Last Sentence**: the sentence you're in, or the one you just finished.
-  - **Read from Newline**: the line (paragraph) the cursor is on.
-  - **Read All**: the whole note.
-  - **Read from Cursor**: from the cursor to the end.
-  - **Read Last Word**: the word just before the cursor.
-  - **Read Selection**: whatever text you've selected.
+  - **Last Sentence**: the sentence you're in, or the one you just finished.
+  - **From Newline**: the line (paragraph) the cursor is on.
+  - **All**: the whole note.
+  - **From Cursor**: from the cursor to the end.
+  - **Last Word**: the word just before the cursor.
+  - **Spell Last**: reads the word just before the cursor, then spells it letter by letter.
+  - **Selection**: whatever text you've selected.
   - **Stop**: stops reading.
-  - **PC keyboard shortcuts:** Alt+1 Last Sentence, Alt+2 Newline, Alt+3 All, Alt+4 Cursor, Alt+5 Last Word, Alt+6 Selection. Esc stops reading; Esc twice locks.
+  - **PC keyboard shortcuts:** Alt+1 Last Sentence, Alt+2 Newline, Alt+3 All, Alt+4 Cursor, Alt+5 Last Word, Alt+8 Spell Last, Alt+6 Selection. Esc stops reading; Esc twice locks.
 - **Auto Read**
   - **Every Word**: reads each word when you type the space or punctuation after it.
   - **Every Sentence**: reads each sentence after its `.` `!` or `?`, or when you press Enter.

@@ -4,7 +4,7 @@ import * as C from './crypto.js';
 import * as T from './text.js';
 import { Speaker, PIPER_VOICES, KOKORO_VOICES } from './tts.js';
 import { GitHubStore, SyncConflict, mergeNotebooks } from './sync.js';
-import { initSnippets } from './snippets.js';
+import { initLookahead } from './lookahead.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   noteCounter: 0,
   lockMinutes: 15,
   lockOnHide: false,
+  lookahead: { size: 'medium', words: 150 },
   sync: null, // { owner, repo, token } – kept encrypted on this device
   voice: {
     engine: 'piper', piperVoice: 'en_US-hfc_female-medium', piperSpeaker: 0,
@@ -157,7 +158,7 @@ $('#privacy-cover').addEventListener('pointerdown', () => setCover(false));
 window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); }); // never resume an unlocked page from cache
 
 let locking = false;
-async function lock() {
+async function lock(manual = false) {
   if (locking) return; locking = true;
   speaker.stop();
   setCover(true);
@@ -165,10 +166,10 @@ async function lock() {
   if (dirty && state.settings && state.settings.sync) { try { await Promise.race([syncNow(), sleep(5000)]); } catch (e) { /* ignore */ } }
   state.key = null; state.unlocked = false;
   $('#note-text').value = ''; $('#name-input').value = '';
-  if (snippets.busy()) { softLock(); return; }
+  if (lookahead.busy() && !manual) { softLock(); return; } // a manual lock stops it instead
   location.reload();
 }
-/* Locks the notebook without restarting the app, so a snippet already loading can finish.
+/* Locks the notebook without restarting the app, so saving work already under way can finish.
    The app restarts as soon as that work is done. */
 function softLock() {
   clearTimeout(listTimer); clearTimeout(syncTimer); clearTimeout(pendingSentence);
@@ -176,7 +177,7 @@ function softLock() {
   state.revealText = false; state.revealNames = false; state.sync = { base: {}, tomb: {}, lastSync: 0 }; dirty = false;
   textField.layer.textContent = ''; nameField.layer.textContent = '';
   $('#note-list').innerHTML = ''; $('#meta-body').innerHTML = ''; setVoiceStatus('');
-  snippets.locked();
+  lookahead.locked();
   $('#editor').hidden = true; $('#no-note').hidden = false; document.body.classList.remove('note-open');
   setCover(false); show('login'); $('#login-pass').value = ''; $('#login-pass').focus();
   locking = false;
@@ -320,7 +321,7 @@ function enterApp() {
   applySettingsToUI();
   renderList();
   closeNote();
-  snippets.unlocked();
+  lookahead.unlocked();
   if (state.settings.sync) syncSoon(300);
 }
 
@@ -412,7 +413,7 @@ function openNote(id) {
   $('#note-text').scrollTop = 0; $('#note-text').setSelectionRange(n.text.length, n.text.length);
   document.body.classList.add('note-open');
   textField.render(); nameField.render();
-  snippets.opened(n);
+  lookahead.opened(n);
   renderMeta(); renderList();
 }
 
@@ -431,7 +432,7 @@ function closeNote({ keepView = false } = {}) {
 }
 $('#close-note-btn').addEventListener('click', () => closeNote());
 $('#back-btn').addEventListener('click', () => closeNote());
-$('#lock-btn').addEventListener('click', () => lock());
+$('#lock-btn').addEventListener('click', () => lock(true));
 
 /* ----- editing ----- */
 function touch(note) {
@@ -493,18 +494,19 @@ for (const b of $$('[data-read]')) {
   b.addEventListener('click', () => {
     const ta = $('#note-text'); const text = ta.value; const pos = ta.selectionStart;
     const kind = b.dataset.read;
-    const t = kind === 'word' ? T.lastWord(text, pos)
+    if (kind === 'word') { lookahead.start(); return; }
+    const t = kind === 'spell' ? T.spellOut(T.lastWord(text, pos))
       : kind === 'sentence' ? T.lastSentence(text, pos)
       : kind === 'newline' ? T.currentLine(text, pos)
       : kind === 'cursor' ? T.fromCursor(text, pos)
       : kind === 'selection' ? text.slice(ta.selectionStart, ta.selectionEnd).trim()
       : T.allText(text);
-    if (!t) { setVoiceStatus(kind === 'selection' ? 'Select some text first, then press Read Selection.' : 'Nothing to read there.'); return; }
+    if (!t) { setVoiceStatus(kind === 'selection' ? 'Select some text first, then press Selection.' : 'Nothing to read there.'); return; }
     speaker.unlockAudio();
     speaker.speak(t, { interrupt: true });
   });
 }
-const SHORTCUTS = { Digit1: 'sentence', Digit2: 'newline', Digit3: 'all', Digit4: 'cursor', Digit5: 'word', Digit6: 'selection' };
+const SHORTCUTS = { Digit1: 'sentence', Digit2: 'newline', Digit3: 'all', Digit4: 'cursor', Digit5: 'word', Digit6: 'selection', Digit8: 'spell' };
 for (const [code, kind] of Object.entries(SHORTCUTS)) { const b = $(`[data-read=${kind}]`); b.title = `${b.textContent} (Alt+${code.slice(-1)})`; }
 let lastEsc = 0;
 window.addEventListener('keydown', (e) => {
@@ -514,7 +516,7 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.key === 'Escape' && !e.repeat) {
     const now = Date.now();
-    if (now - lastEsc < 600) { lastEsc = 0; lock(); return; }
+    if (now - lastEsc < 600) { lastEsc = 0; lock(true); return; }
     lastEsc = now; speaker.stop(); clearTimeout(pendingSentence);
   }
 });
@@ -960,13 +962,13 @@ $('#erase-btn').addEventListener('click', async () => {
   if (!(await confirmDanger('Erase ALL notes, settings and passphrases on this device? Make a backup first if you want to keep anything.', 'Continue'))) return;
   if (!(await confirmDanger('Are you completely sure? This cannot be undone.', 'Erase everything'))) return;
   speaker.stop(); state.unlocked = false; state.saveTimers.forEach(clearTimeout); state.saveTimers.clear();
-  await snippets.erase();
+  await lookahead.erase();
   await db.wipe();
   location.reload();
 });
 
 /* ---------------- boot ---------------- */
-const snippets = initSnippets({ state, db, C, bump, touch, saveNote, markDirty, MaskedField, textField, confirmDanger, afterBackgroundWork });
+const lookahead = initLookahead({ state, db, C, touch, saveNote, saveSettings, markDirty, textField, confirmDanger, afterBackgroundWork, setVoiceStatus });
 
 async function boot() {
   if ('serviceWorker' in navigator) {

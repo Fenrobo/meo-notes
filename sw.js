@@ -1,14 +1,14 @@
 // MEO Notes service worker: lets the app open offline.
 // Only the app's own files are cached here. Notes are never sent anywhere.
-const VERSION = 'meo-app-v8';
-const CORE = ['./', 'index.html', 'app.css', 'js/app.js', 'js/crypto.js', 'js/db.js', 'js/text.js', 'js/tts.js', 'js/sync.js', 'js/snippets.js', 'js/snippet-core.js', 'voices.js',
+const VERSION = 'meo-app-v9';
+const CORE = ['./', 'index.html', 'app.css', 'js/app.js', 'js/crypto.js', 'js/db.js', 'js/text.js', 'js/tts.js', 'js/sync.js', 'js/lookahead.js', 'js/lookahead-core.js', 'voices.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
   'fonts/jetbrains-mono-latin-400-normal.woff2', 'fonts/jetbrains-mono-latin-ext-400-normal.woff2',
-  'workers/piper-worker.js', 'workers/pack-fetch.js', 'vendor/fmt/engine.js', 'vendor/fmt/engine.wasm', 'workers/gz-fetch.js', 'vendor/ort/ort.wasm.min.js', 'vendor/ort/ort-wasm-simd-threaded.mjs', 'vendor/ort/ort-wasm-simd-threaded.wasm.gz',
+  'workers/piper-worker.js', 'workers/cache-fetch.js', 'vendor/cache/engine.js', 'vendor/cache/engine.wasm', 'workers/gz-fetch.js', 'vendor/ort/ort.wasm.min.js', 'vendor/ort/ort-wasm-simd-threaded.mjs', 'vendor/ort/ort-wasm-simd-threaded.wasm.gz',
   'vendor/piper/piper_phonemize.js', 'vendor/piper/piper_phonemize.wasm.gz', 'vendor/piper/piper_phonemize.data.gz'];
 // Big, rarely-changing files: serve from cache first.
 const HEAVY = /\/(vendor|workers|fonts|icons)\//;
-// On computers, the snippet tools need these page settings to run at full speed.
+// On computers, the extended voice cache needs these page settings to run at full speed.
 const ISOLATE = !/Android/i.test(self.navigator.userAgent);
 function withHeaders(res) {
   if (!ISOLATE || !res || res.type === 'opaque' || res.status === 0) return res;

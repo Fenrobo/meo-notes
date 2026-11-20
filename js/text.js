@@ -136,4 +136,9 @@ export function autoReadAfterInput(mode, text, pos, grew) {
   return null;
 }
 
+/** "cat" → "cat. C, A, T." for the Spell Last button. */
+export function spellOut(word) {
+  const letters = [...(word || '')].filter((ch) => isWord(ch)).map((ch) => ch.toUpperCase());
+  return letters.length ? `${word}. ${letters.join(', ')}.` : '';
+}
 export function utf8Size(text) { return new TextEncoder().encode(text).length; }

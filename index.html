@@ -172,23 +172,18 @@
         </div>
 
         <div class="read-row">
-          <button data-read="sentence">Read Last Sentence</button>
-          <button data-read="newline">Read from Newline</button>
-          <button data-read="all">Read All</button>
-          <button data-read="cursor">Read from Cursor</button>
-          <button data-read="word">Read Last Word</button>
-          <button data-read="selection">Read Selection</button>
+          <button data-read="sentence">Last Sentence</button>
+          <button data-read="newline">From Newline</button>
+          <button data-read="all">All</button>
+          <button data-read="cursor">From Cursor</button>
+          <button data-read="word">Last Word</button>
+          <button data-read="spell">Spell Last</button>
+          <button data-read="selection">Selection</button>
           <button id="stop-btn" class="danger" disabled>Stop</button>
         </div>
         <p id="voice-status" class="hint" role="status"></p>
-        <div class="snip-bar">
-          <p id="snip-status" class="hint" role="status" hidden></p>
-          <span id="snip-row" hidden>
-            <button id="snip-apply" class="tiny" title="Insert snippet (Alt+7)">Insert snippet</button>
-            <button id="snip-revert" class="tiny" title="Undo snippet" disabled>Undo</button>
-          </span>
-        </div>
-        <p class="hint only-wide">Shortcuts: Alt+1 Last Sentence · Alt+2 Newline · Alt+3 All · Alt+4 Cursor · Alt+5 Last Word · Alt+6 Selection<span id="snip-hint" hidden> · Alt+7 Snippet</span> · Esc Stop · Esc Esc Lock</p>
+        <p id="la-status" class="hint" role="status"></p>
+        <p class="hint only-wide">Shortcuts: Alt+1 Last Sentence · Alt+2 Newline · Alt+3 All · Alt+4 Cursor · Alt+5 Last Word · Alt+8 Spell Last · Alt+6 Selection · Esc Stop · Esc Esc Lock</p>
 
         <details class="menu">
           <summary>Text Settings</summary>
@@ -199,51 +194,6 @@
             <label><input type="checkbox" data-text-opt="firstLetters"> Show First Letters</label>
             <label><input type="checkbox" id="text-show-all"> Show All Text <span class="tag">needs reveal passphrase</span></label>
             <p class="hint">Show All Text turns itself off when you close the note, lock, or time out.</p>
-          </div>
-        </details>
-
-        <details class="menu" id="snip-menu" hidden>
-          <summary>Snippets</summary>
-          <div class="menu-body">
-            <h3>Keywords</h3>
-            <div class="masked multi" id="snip-notes-wrap">
-              <div class="mask-layer" aria-hidden="true"></div>
-              <textarea id="snip-notes" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="Keywords" placeholder="Optional"></textarea>
-            </div>
-            <label><input type="checkbox" id="snip-keep"> Keep for this note</label>
-            <label class="row">Snippet length
-              <select id="snip-size">
-                <option value="short">Short</option>
-                <option value="medium">Medium</option>
-                <option value="long">Long</option>
-                <option value="custom">Custom</option>
-              </select>
-            </label>
-            <label class="row" id="snip-words-row" hidden>Words
-              <input type="number" id="snip-words" min="10" max="800" step="10">
-            </label>
-            <h3>Snippet Library</h3>
-            <p id="snip-pack-status" class="hint" role="status"></p>
-            <div class="btn-row">
-              <button id="snip-pack-btn">Download snippet library</button>
-              <button id="snip-pack-del" class="ghost danger small" hidden>Delete snippet library</button>
-            </div>
-            <label class="row">Library speed
-              <select id="snip-mode">
-                <option value="auto">Automatic</option>
-                <option value="cpu">CPU only</option>
-              </select>
-            </label>
-            <label class="row">CPU cores
-              <select id="snip-cores">
-                <option value="0">Automatic</option>
-                <option value="2">2</option>
-                <option value="4">4</option>
-                <option value="6">6</option>
-                <option value="8">8</option>
-                <option value="12">12</option>
-              </select>
-            </label>
           </div>
         </details>
 
@@ -279,6 +229,41 @@
             <label class="button">Add custom voice…<input type="file" id="custom-voice-file" accept=".onnx,.json" multiple hidden></label>
             <ul id="custom-voice-list" class="plain-list"></ul>
             <button id="clear-voices-btn" class="ghost small">Delete downloaded voice files</button>
+            <div id="la-advanced" hidden>
+              <h3>Advanced</h3>
+              <label class="row">Lookahead
+                <select id="la-size">
+                  <option value="short">Short</option>
+                  <option value="medium">Medium</option>
+                  <option value="long">Long</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              <label class="row" id="la-words-row" hidden>Lookahead words
+                <input type="number" id="la-words" min="10" max="800" step="10">
+              </label>
+              <p id="la-pack-status" class="hint" role="status"></p>
+              <div class="btn-row">
+                <button id="la-pack-btn" class="small">Download extended voice cache</button>
+                <button id="la-pack-del" class="ghost danger small" hidden>Delete extended voice cache</button>
+              </div>
+              <label class="row">Cache acceleration
+                <select id="la-mode">
+                  <option value="auto">Automatic</option>
+                  <option value="cpu">CPU only</option>
+                </select>
+              </label>
+              <label class="row">Synthesis threads
+                <select id="la-cores">
+                  <option value="0">Automatic</option>
+                  <option value="2">2</option>
+                  <option value="4">4</option>
+                  <option value="6">6</option>
+                  <option value="8">8</option>
+                  <option value="12">12</option>
+                </select>
+              </label>
+            </div>
           </div>
         </details>
 
