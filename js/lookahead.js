@@ -125,6 +125,7 @@ export function initLookahead(app) {
     const hw = navigator.hardwareConcurrency || 4;
     const cores = device.get().cores || Math.max(2, Math.min(8, hw - 1));
     let lastErr = null;
+    const t0 = Date.now();
     const plan = await layerPlan();
     for (const layers of plan) {
       const w = new Wllama({ default: wasm }, { suppressNativeLog: true, logger: quiet });
@@ -132,10 +133,20 @@ export function initLookahead(app) {
         await w.loadModel([file], { n_ctx: F.CONTEXT_SIZE, n_gpu_layers: layers, n_threads: layers ? Math.min(4, cores) : cores });
         device.set({ rung: [99, 24, 0].indexOf(layers) });
         engine = { w, layers };
+        diag.load = `${layers ? 'graphics card (' + layers + ')' : 'CPU'}, ${Math.round((Date.now() - t0) / 1000)}s`;
         return engine;
-      } catch (e) { lastErr = e; try { await w.exit(); } catch (x) { /* already stopped */ } }
+      } catch (e) { lastErr = e; diag.loadErrors.push(`${layers ? 'graphics card (' + layers + ')' : 'CPU'}: ${short(e)}`); try { await w.exit(); } catch (x) { /* already stopped */ } }
     }
     throw lastErr || new Error('load failed');
+  }
+
+  /* ----- Alt+0: what happened last time (no note text is ever kept here) ----- */
+  const short = (e) => String((e && (e.message || e.name)) || e || 'unknown').replace(/\s+/g, ' ').slice(0, 140);
+  let diag = { loadErrors: [] };
+  const saveDiag = (d) => device.set({ diag: d });
+  function showDiag() {
+    const d = device.get().diag;
+    app.setVoiceStatus(d ? `Diagnostics (${d.when}): ${d.text}` : 'Diagnostics: nothing recorded yet.');
   }
 
   async function write(input, signal) {
@@ -155,12 +166,13 @@ export function initLookahead(app) {
         for await (const c of stream) {
           const ch = c.choices && c.choices[0]; if (!ch || cueStop) continue;
           raw += ch.text || ''; reason = ch.finish_reason || reason;
-          const at = F.cueCut(raw); // another character's line is starting: stop here
+          const at = F.cueCut(raw, input.speaker); // another character's line is starting: stop here
           if (at >= 0) { raw = raw.slice(0, at); cueStop = true; inner.abort(); }
         }
       } catch (x) {
         if (signal.aborted) throw x;
         if (!cueStop) {
+          diag.runErrors.push(`${e.layers ? 'graphics card' : 'CPU'}: ${short(x)}`);
           if (attempt >= 2) throw x;
           if (/context|exceed|too long/i.test(String(x && x.message))) { maxChars = Math.floor(maxChars * 0.6); continue; }
           if (e.layers) device.set({ rung: Math.min(2, [99, 24, 0].indexOf(e.layers) + 1) }); // graphics memory ran out: use less next try
@@ -168,7 +180,13 @@ export function initLookahead(app) {
         }
       } finally { signal.removeEventListener('abort', pass); }
       if (signal.aborted) throw new DOMException('Cancelled', 'AbortError');
-      return F.finishReply(input.ctx + input.prefix, raw, prefill, cueStop ? 'stop' : reason, input.speaker);
+      const out = F.finishReply(input.ctx + input.prefix, raw, prefill, cueStop ? 'stop' : reason, input.speaker);
+      diag.runs.push(`${e.layers ? 'graphics card' : 'CPU'}: ${raw.length} chars raw, ${out.length} kept, ended ${cueStop ? 'at a cue' : reason || 'unknown'}`);
+      if (!out.trim() && e.layers && attempt < 2) {
+        // Some graphics cards produce nothing usable: switch this device to the CPU and try again.
+        device.set({ rung: 2 }); await unload(); continue;
+      }
+      return out;
     }
   }
 
@@ -247,18 +265,28 @@ export function initLookahead(app) {
     if (!self.crossOriginIsolated) { app.setVoiceStatus('Please close and reopen the app once to finish updating.'); return; }
     const ta = $('#note-text'); n.text = ta.value;
     const req = F.prepare(n.text.slice(0, ta.selectionStart));
-    if (!req.ctx.trim() && !req.direction) return;
+    if (!req.ctx.trim() && !req.direction) { say('Nothing to save', 3000); return; }
     const ctl = new AbortController();
     job = { ctl }; clearTimeout(unloadTimer); say('Saving');
+    diag = { loadErrors: [], runErrors: [], runs: [], started: Date.now() };
+    let adapterNote = '';
+    try { const a = navigator.gpu && await navigator.gpu.requestAdapter(); adapterNote = a ? 'graphics card available' : 'no graphics card access'; } catch (x) { adapterNote = 'graphics check failed'; }
     try {
       const seal = await prepareSeal({ noteId: n.id, pos: req.pos, tail: req.tail, remove: req.remove, prefix: req.prefix });
       const reply = await write({ ctx: req.ctx, prefix: req.prefix, direction: req.direction, speaker: req.speaker, words: F.blockWords(la()) }, ctl.signal);
       if (!reply.trim()) throw new Error('empty');
       await storeSealed(seal, reply);
       if (state.unlocked) say('');
+      diag.result = 'saved';
     } catch (e) {
       if (state.unlocked) say(ctl.signal.aborted ? '' : 'Not saved', 5000);
+      diag.result = ctl.signal.aborted ? 'cancelled' : e && e.message === 'empty' ? 'nothing usable was written' : 'failed: ' + short(e);
     } finally {
+      const secs = Math.round((Date.now() - diag.started) / 1000);
+      saveDiag({ when: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), text: [
+        `${diag.result} after ${secs}s`, adapterNote, `isolated ${self.crossOriginIsolated}`, `${navigator.hardwareConcurrency || '?'} cores`,
+        diag.load ? 'loaded on ' + diag.load : '', ...diag.loadErrors.map((x) => 'load error ' + x), ...diag.runErrors.map((x) => 'run error ' + x), ...diag.runs,
+      ].filter(Boolean).join(' · ') });
       job = null;
       if (!state.unlocked) { await unload(); app.afterBackgroundWork(); }
       else { await deliverPending(); clearTimeout(unloadTimer); unloadTimer = setTimeout(() => { if (!job) unload(); }, IDLE_UNLOAD_MS); }
@@ -282,6 +310,7 @@ export function initLookahead(app) {
     if (!e.altKey || e.ctrlKey || e.metaKey || !state.unlocked || !state.openId || document.querySelector('dialog[open]')) return;
     if (e.code === 'Digit7') { e.preventDefault(); start(); }
     else if (e.code === 'Digit9') { e.preventDefault(); undoLast(); }
+    else if (e.code === 'Digit0') { e.preventDefault(); showDiag(); }
   });
 
   return {

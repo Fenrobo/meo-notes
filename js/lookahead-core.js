@@ -85,10 +85,16 @@ export function buildPrompt({ ctx, prefix = '', direction = '', speaker = null, 
 }
 
 /** Where a reply should stop: the start of another character's line. Returns -1 if none. */
-export function cueCut(raw) {
+export function cueCut(raw, speaker = null) {
   const re = new RegExp(String.raw`\n[ \t]*(${NAME})[ \t]*:`, 'gu');
+  const self = speaker && speaker.toLowerCase();
   let m;
-  while ((m = re.exec(raw))) if (!NOT_NAMES.has(m[1].toLowerCase())) return m.index;
+  while ((m = re.exec(raw))) {
+    const name = m[1].toLowerCase();
+    if (NOT_NAMES.has(name) || name === self) continue; // the same character carrying on is fine
+    if (!raw.slice(0, m.index).trim()) continue; // a label right at the start is removed later, not a reason to stop
+    return m.index;
+  }
   return -1;
 }
 
