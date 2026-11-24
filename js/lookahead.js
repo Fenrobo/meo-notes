@@ -119,8 +119,8 @@ export function initLookahead(app) {
   }
   async function loadEngine() {
     if (engine) return engine;
-    const { Wllama } = await import('../vendor/cache/engine.js');
-    const wasm = new URL('../vendor/cache/engine.wasm', import.meta.url).href;
+    const { Wllama } = await import('../vendor/lookahead/engine.js');
+    const wasm = new URL('../vendor/lookahead/engine.wasm', import.meta.url).href;
     const file = await packFile();
     const hw = navigator.hardwareConcurrency || 4;
     const cores = device.get().cores || Math.max(2, Math.min(8, hw - 1));

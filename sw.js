@@ -1,10 +1,10 @@
 // MEO Notes service worker: lets the app open offline.
 // Only the app's own files are cached here. Notes are never sent anywhere.
-const VERSION = 'meo-app-v10';
+const VERSION = 'meo-app-v11';
 const CORE = ['./', 'index.html', 'app.css', 'js/app.js', 'js/crypto.js', 'js/db.js', 'js/text.js', 'js/tts.js', 'js/sync.js', 'js/lookahead.js', 'js/lookahead-core.js', 'voices.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
   'fonts/jetbrains-mono-latin-400-normal.woff2', 'fonts/jetbrains-mono-latin-ext-400-normal.woff2',
-  'workers/piper-worker.js', 'workers/cache-fetch.js', 'vendor/cache/engine.js', 'vendor/cache/engine.wasm', 'workers/gz-fetch.js', 'vendor/ort/ort.wasm.min.js', 'vendor/ort/ort-wasm-simd-threaded.mjs', 'vendor/ort/ort-wasm-simd-threaded.wasm.gz',
+  'workers/piper-worker.js', 'workers/cache-fetch.js', 'vendor/lookahead/engine.js', 'vendor/lookahead/engine.wasm', 'workers/gz-fetch.js', 'vendor/ort/ort.wasm.min.js', 'vendor/ort/ort-wasm-simd-threaded.mjs', 'vendor/ort/ort-wasm-simd-threaded.wasm.gz',
   'vendor/piper/piper_phonemize.js', 'vendor/piper/piper_phonemize.wasm.gz', 'vendor/piper/piper_phonemize.data.gz'];
 // Big, rarely-changing files: serve from cache first.
 const HEAVY = /\/(vendor|workers|fonts|icons)\//;
