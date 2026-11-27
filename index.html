@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' https://api.github.com https://huggingface.co https://*.huggingface.co https://*.hf.co blob: data:; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' http://127.0.0.1:* https://api.github.com https://huggingface.co https://*.huggingface.co https://*.hf.co blob: data:; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#14211f">
 <title>MEO Notes</title>
@@ -242,27 +242,12 @@
               <label class="row" id="la-words-row" hidden>Lookahead words
                 <input type="number" id="la-words" min="10" max="800" step="10">
               </label>
-              <p id="la-pack-status" class="hint" role="status"></p>
+              <p id="la-engine-status" class="hint" role="status"></p>
               <div class="btn-row">
-                <button id="la-pack-btn" class="small">Download extended voice cache</button>
-                <button id="la-pack-del" class="ghost danger small" hidden>Delete extended voice cache</button>
+                <button id="la-check-btn" class="small">Check voice engine</button>
+                <button id="la-setup-btn" class="ghost small">Download voice engine setup</button>
               </div>
-              <label class="row">Cache acceleration
-                <select id="la-mode">
-                  <option value="auto">Automatic</option>
-                  <option value="cpu">CPU only</option>
-                </select>
-              </label>
-              <label class="row">Synthesis threads
-                <select id="la-cores">
-                  <option value="0">Automatic</option>
-                  <option value="2">2</option>
-                  <option value="4">4</option>
-                  <option value="6">6</option>
-                  <option value="8">8</option>
-                  <option value="12">12</option>
-                </select>
-              </label>
+            </div>
             </div>
           </div>
         </details>

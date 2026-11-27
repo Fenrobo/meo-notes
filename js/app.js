@@ -166,7 +166,7 @@ async function lock(manual = false) {
   if (dirty && state.settings && state.settings.sync) { try { await Promise.race([syncNow(), sleep(5000)]); } catch (e) { /* ignore */ } }
   state.key = null; state.unlocked = false;
   $('#note-text').value = ''; $('#name-input').value = '';
-  if (lookahead.busy() && !manual) { softLock(); return; } // a manual lock stops it instead
+  if (lookahead.busy()) { if (!manual) { softLock(); return; } await lookahead.cancel(); } // a manual lock stops it instead
   location.reload();
 }
 /* Locks the notebook without restarting the app, so saving work already under way can finish.
@@ -972,12 +972,6 @@ const lookahead = initLookahead({ state, db, C, touch, saveNote, saveSettings, m
 
 async function boot() {
   if ('serviceWorker' in navigator) {
-    // The first time an updated app takes over, restart once so its page settings apply.
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (/Android/i.test(navigator.userAgent) || self.crossOriginIsolated || state.unlocked || sessionStorage.getItem('meo-restarted')) return;
-      if ($('#login-pass').value || $('#setup-login').value) return; // don't interrupt typing
-      sessionStorage.setItem('meo-restarted', '1'); location.reload();
-    });
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
   state.vault = await db.get('kv', 'vault');

@@ -1,7 +1,7 @@
 // MEO Notes – text helpers for the voice lookahead. No page or storage access here.
 
 export const BLOCK_WORDS = { short: 60, medium: 150, long: 350 };
-export const CONTEXT_SIZE = 6144;
+export const CONTEXT_SIZE = 8192;
 const CLOSERS = `["'”’)\\]*_~]*`;
 
 export function blockWords(fmt) {
@@ -13,7 +13,7 @@ export const replyLimit = (words) => Math.ceil(words * 1.7) + 24;
 
 /** Remove control markers so note text can't be read as commands. */
 export function clean(s) {
-  return String(s || '').replace(/<\/?(?:start_of_turn|end_of_turn|bos|eos|pad)>/gi, '');
+  return String(s || '').replace(/<\/?(?:start_of_turn|end_of_turn|bos|eos|pad|s)>|\[\/?(?:INST|SYSTEM_PROMPT)\]/gi, '');
 }
 
 /** Keep the end of a long note. The start moves in fixed steps so repeat requests stay fast. */
@@ -81,7 +81,17 @@ export function buildPrompt({ ctx, prefix = '', direction = '', speaker = null, 
   let prefill = openFragment(text);
   const cue = CUE.exec(prefill);
   if (cue && cueName(prefill)) prefill = prefill.slice(cue[0].length);
-  return { prompt: `<start_of_turn>user\n${ask}<end_of_turn>\n<start_of_turn>model\n${prefill}`, prefill };
+  return { prompt: `[INST]${ask}[/INST]${prefill}`, prefill };
+}
+
+/** Names cued in the text, so the engine can stop when one of them starts a line. */
+export function cueNames(text, except = null) {
+  const out = [];
+  for (const line of String(text || '').split('\n')) {
+    const n = cueName(line);
+    if (n && !isNarrator(n) && n !== except && !out.includes(n)) out.push(n);
+  }
+  return out.slice(-12);
 }
 
 /** Where a reply should stop: the start of another character's line. Returns -1 if none. */
